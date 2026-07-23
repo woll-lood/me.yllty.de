@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>全国机构分布热力图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f5f5f5; }
+        .controls { margin-bottom: 15px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .controls input, .controls select, .controls button { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        #map-container { width: 100%; height: 700px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <label>TXT URL：</label>
+        <input type="text" id="dataUrl" value="https://example.com/data.txt" style="width: 300px;">
+        
+        <label>主题色切换：</label>
+        <select id="colorScheme">
+            <option value="red">红色系（默认）</option>
+            <option value="blue">蓝色系</option>
+            <option value="green">绿色系</option>
+            <option value="purple">紫色系</option>
+        </select>
+        
+        <button onclick="loadAndRender()">加载数据</button>
+    </div>
+
+    <div id="map-container"></div>
+
+    <script>
+        // 中国 34 个省/直辖市/自治区简称映射库，用于模糊匹配文本开头的地址
+        const provinceList = [
+            "北京", "天津", "上海", "重庆", "河北", "山西", "辽宁", "吉林", "黑龙江",
+            "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南",
+            "广东", "海南", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "台湾",
+            "内蒙古", "广西", "西藏", "宁夏", "新疆", "香港", "澳门"
+        ];
+
+        // 颜色方案映射（从浅到深）
+        const colorPalette = {
+            red: ['#ffe5e5', '#ff9999', '#ff4d4d', '#cc0000', '#660000'],
+            blue: ['#e6f7ff', '#91d5ff', '#40a9ff', '#096dd9', '#002766'],
+            green: ['#f6ffed', '#b7eb8f', '#52c41a', '#237804', '#092b00'],
+            purple: ['#f9f0ff', '#d3ade6', '#9254de', '#531dab', '#120338']
+        };
+
+        let myChart = echarts.init(document.getElementById('map-container'));
+
+        // 监听下拉框切换颜色
+        document.getElementById('colorScheme').addEventListener('change', function() {
+            if (window.currentProvinceCounts) {
+                renderMap(window.currentProvinceCounts);
+            }
+        });
+
+        // 初始化：加载中国地图 GeoJSON
+        async function init() {
+            try {
+                // 加载公开的中国地图 GeoJSON 数据
+                const geoResp = await fetch('https://cdn.jsdelivr.net/gh/apache/echarts-website@asf-site/examples/data/asset/geo/China.json');
+                const chinaGeoJson = await geoResp.json();
+                echarts.registerMap('china', chinaGeoJson);
+            } catch (err) {
+                alert("加载地图底图失败，请检查网络！");
+            }
+        }
+
+        // 核心步骤 1：获取网络 TXT 并解析数据
+        async function loadAndRender() {
+            const url = document.getElementById('dataUrl').value;
+            if (!url) return alert('请输入有效的文本 URL！');
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('网络请求错误');
+                const text = await response.text();
+                
+                // 解析文本并统计各省数量
+                const counts = parseTextData(text);
+                window.currentProvinceCounts = counts; // 缓存数据用于切换颜色
+                
+                // 渲染地图
+                renderMap(counts);
+            } catch (error) {
+                alert('获取文本数据失败：' + error.message + '\n注意：请确保目标 URL 支持跨域（CORS）。');
+            }
+        }
+
+        // 核心步骤 2：分析文本文本内容（正则提取省份）
+        function parseTextData(text) {
+            const counts = {};
+            provinceList.forEach(p => counts[p] = 0); // 初始化各省份为0
+
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (!trimmed) return;
+
+                // 尝试匹配每行开头的省份
+                for (let prov of provinceList) {
+                    // 如果行首包含该省名称（如 "湖南湘潭岳塘区..."）
+                    if (trimmed.startsWith(prov)) {
+                        counts[prov]++;
+                        break; // 匹配到对应省份后停止，继续分析下一行
+                    }
+                }
+            });
+
+            // 转换成 ECharts 需要的数组格式 [{name: '湖南', value: 12}, ...]
+            return Object.keys(counts).map(prov => ({
+                name: prov,
+                value: counts[prov]
+            }));
+        }
+
+        // 核心步骤 3：渲染 ECharts 地图
+        function renderMap(data) {
+            // 计算当前数据中的最大值，用于视觉映射
+            const maxVal = Math.max(...data.map(item => item.value), 10);
+            const selectedColorKey = document.getElementById('colorScheme').value;
+
+            const option = {
+                title: {
+                    text: '全国机构分布热力图',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c} 家机构'
+                },
+                visualMap: {
+                    min: 0,
+                    max: maxVal,
+                    left: 'left',
+                    bottom: 'bottom',
+                    text: ['高', '低'],
+                    calculable: true,
+                    // 动态选择颜色渐变库
+                    inRange: {
+                        color: colorPalette[selectedColorKey]
+                    }
+                },
+                series: [
+                    {
+                        name: '机构数量',
+                        type: 'map',
+                        map: 'china',
+                        roam: true, // 支持缩放和拖拽
+                        label: {
+                            show: true,
+                            fontSize: 10
+                        },
+                        data: data
+                    }
+                ]
+            };
+
+            myChart.setOption(option);
+        }
+
+        // 页面初始化加载地图底图
+        init();
+    </script>
+</body>
+</html>
