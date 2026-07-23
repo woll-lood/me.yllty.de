@@ -118,7 +118,9 @@
     </header>
 
     <div class="notice-bar">
-        <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别
+        <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别；
+        港澳台暂无数据，但已出现在地图中；
+        ​地图底图来源： 阿里云 DataV.GeoJSON / 自然资源部标准地图服务。
     </div>
 
     <div id="map-container">
@@ -179,7 +181,7 @@
             try {
                 // 设置触屏灵敏度降低配置（降低手势触发频率）
                 myChart = echarts.init(mapContainer, null, {
-                    touchResponseSensitivity: 0.5 // 降低触屏响应灵敏度
+                    touchResponseSensitivity: 0.3 // 降低触屏响应灵敏度
                 });
                 window.addEventListener('resize', () => myChart.resize());
 
