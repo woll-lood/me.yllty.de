@@ -2,143 +2,304 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>全国机构分布热力图</title>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f5f5f5; }
-        .controls { margin-bottom: 15px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .controls input, .controls select, .controls button { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
-        #map-container { width: 100%; height: 700px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            background: #ffffff;
+            padding: 12px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+        h1 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-size: 13px;
+            color: #6b7280;
+        }
+        select {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background-color: #f9fafb;
+            font-size: 13px;
+            outline: none;
+        }
+        #map-container {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        /* 移动端专属响应式调整 */
+        @media (max-width: 600px) {
+            header {
+                padding: 10px 12px;
+            }
+            h1 {
+                font-size: 14px;
+            }
+            select {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+        }
+        #loading-mask {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="controls">
-        <label>TXT URL：</label>
-        <input type="text" id="dataUrl" value="https://example.com/data.txt" style="width: 300px;">
-        
-        <label>主题色切换：</label>
-        <select id="colorScheme">
-            <option value="red">红色系（默认）</option>
-            <option value="blue">蓝色系</option>
-            <option value="green">绿色系</option>
-            <option value="purple">紫色系</option>
-        </select>
-        
-        <button onclick="loadAndRender()">加载数据</button>
+    <header>
+        <h1>机构分布热力图</h1>
+        <div class="controls">
+            <label for="colorScheme">配色：</label>
+            <select id="colorScheme">
+                <option value="red">暖红</option>
+                <option value="blue">深蓝</option>
+                <option value="green">墨绿</option>
+                <option value="purple">紫罗兰</option>
+            </select>
+        </div>
+    </header>
+
+    <div id="map-container">
+        <div id="loading-mask">
+            <div class="spinner"></div>
+            <div id="loading-text">正在加载地图与数据...</div>
+        </div>
     </div>
 
-    <div id="map-container"></div>
-
     <script>
-        // 中国 34 个省/直辖市/自治区简称映射库，用于模糊匹配文本开头的地址
-        const provinceList = [
-            "北京", "天津", "上海", "重庆", "河北", "山西", "辽宁", "吉林", "黑龙江",
-            "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南",
-            "广东", "海南", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "台湾",
-            "内蒙古", "广西", "西藏", "宁夏", "新疆", "香港", "澳门"
+        // 固定的数据 URL
+        const DATA_URL = 'https://me.yllty.de/school-map/schools.txt';
+
+        // 中国省份/自治区/直辖市名称映射表（支持匹配包含“省/市/自治区”的正则）
+        const provinceMap = [
+            { name: "北京", pattern: /^北京/ },
+            { name: "天津", pattern: /^天津/ },
+            { name: "上海", pattern: /^上海/ },
+            { name: "重庆", pattern: /^重庆/ },
+            { name: "河北", pattern: /^河北/ },
+            { name: "山西", pattern: /^山西/ },
+            { name: "辽宁", pattern: /^辽宁/ },
+            { name: "吉林", pattern: /^吉林/ },
+            { name: "黑龙江", pattern: /^黑龙江/ },
+            { name: "江苏", pattern: /^江苏/ },
+            { name: "浙江", pattern: /^浙江/ },
+            { name: "安徽", pattern: /^安徽/ },
+            { name: "福建", pattern: /^福建/ },
+            { name: "江西", pattern: /^江西/ },
+            { name: "山东", pattern: /^山东/ },
+            { name: "河南", pattern: /^河南/ },
+            { name: "湖北", pattern: /^湖北/ },
+            { name: "湖南", pattern: /^湖南/ },
+            { name: "广东", pattern: /^广东/ },
+            { name: "海南", pattern: /^海南/ },
+            { name: "四川", pattern: /^四川/ },
+            { name: "贵州", pattern: /^贵州/ },
+            { name: "云南", pattern: /^云南/ },
+            { name: "陕西", pattern: /^陕西/ },
+            { name: "甘肃", pattern: /^甘肃/ },
+            { name: "青海", pattern: /^青海/ },
+            { name: "台湾", pattern: /^台湾/ },
+            { name: "内蒙古", pattern: /^内蒙古/ },
+            { name: "广西", pattern: /^广西/ },
+            { name: "西藏", pattern: /^西藏/ },
+            { name: "宁夏", pattern: /^宁夏/ },
+            { name: "新疆", pattern: /^新疆/ },
+            { name: "香港", pattern: /^香港/ },
+            { name: "澳门", pattern: /^澳门/ }
         ];
 
-        // 颜色方案映射（从浅到深）
+        // 配色方案（从浅至深）
         const colorPalette = {
-            red: ['#ffe5e5', '#ff9999', '#ff4d4d', '#cc0000', '#660000'],
-            blue: ['#e6f7ff', '#91d5ff', '#40a9ff', '#096dd9', '#002766'],
-            green: ['#f6ffed', '#b7eb8f', '#52c41a', '#237804', '#092b00'],
-            purple: ['#f9f0ff', '#d3ade6', '#9254de', '#531dab', '#120338']
+            red: ['#fef2f2', '#fca5a5', '#ef4444', '#b91c1c', '#7f1d1d'],
+            blue: ['#eff6ff', '#93c5fd', '#3b82f6', '#1d4ed8', '#1e3a8a'],
+            green: ['#f0fdf4', '#86efac', '#22c55e', '#15803d', '#14532d'],
+            purple: ['#faf5ff', '#d8b4fe', '#a855f7', '#6b21a8', '#3b0764']
         };
 
-        let myChart = echarts.init(document.getElementById('map-container'));
+        const mapContainer = document.getElementById('map-container');
+        const loadingMask = document.getElementById('loading-mask');
+        const loadingText = document.getElementById('loading-text');
+        
+        let myChart = echarts.init(mapContainer);
+        let cachedParsedData = null;
 
-        // 监听下拉框切换颜色
-        document.getElementById('colorScheme').addEventListener('change', function() {
-            if (window.currentProvinceCounts) {
-                renderMap(window.currentProvinceCounts);
-            }
+        // 监听窗体大小变化，适应移动端横竖屏切换
+        window.addEventListener('resize', () => myChart.resize());
+
+        // 监听主题颜色切换
+        document.getElementById('colorScheme').addEventListener('change', () => {
+            if (cachedParsedData) renderMap(cachedParsedData);
         });
 
-        // 初始化：加载中国地图 GeoJSON
-        async function init() {
+        // 主入口流程
+        async function start() {
             try {
-                // 加载公开的中国地图 GeoJSON 数据
-                const geoResp = await fetch('https://cdn.jsdelivr.net/gh/apache/echarts-website@asf-site/examples/data/asset/geo/China.json');
-                const chinaGeoJson = await geoResp.json();
-                echarts.registerMap('china', chinaGeoJson);
-            } catch (err) {
-                alert("加载地图底图失败，请检查网络！");
-            }
-        }
+                // 1. 并行加载地图 GeoJSON 与 TXT 文本数据
+                const [geoJson, textData] = await Promise.all([
+                    fetchChinaGeoJson(),
+                    fetchTxtData()
+                ]);
 
-        // 核心步骤 1：获取网络 TXT 并解析数据
-        async function loadAndRender() {
-            const url = document.getElementById('dataUrl').value;
-            if (!url) return alert('请输入有效的文本 URL！');
+                // 2. 注册 ECharts 地图
+                echarts.registerMap('china', geoJson);
 
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('网络请求错误');
-                const text = await response.text();
-                
-                // 解析文本并统计各省数量
-                const counts = parseTextData(text);
-                window.currentProvinceCounts = counts; // 缓存数据用于切换颜色
-                
-                // 渲染地图
-                renderMap(counts);
+                // 3. 解析文本内容并计算省份数量
+                cachedParsedData = parseTextData(textData);
+
+                // 4. 渲染地图并隐藏 Loading 遮罩
+                renderMap(cachedParsedData);
+                loadingMask.style.display = 'none';
+
             } catch (error) {
-                alert('获取文本数据失败：' + error.message + '\n注意：请确保目标 URL 支持跨域（CORS）。');
+                loadingText.style.color = '#ef4444';
+                loadingText.innerHTML = `<strong>加载失败</strong><br>${error.message}`;
             }
         }
 
-        // 核心步骤 2：分析文本文本内容（正则提取省份）
+        // 获取中国地图 GeoJSON（含备用 CDN 回退）
+        async function fetchChinaGeoJson() {
+            const urls = [
+                'https://cdn.jsdelivr.net/gh/apache/echarts-website@asf-site/examples/data/asset/geo/China.json',
+                'https://raw.parsecdn.com/china-geojson/main/China.json' // 备用源
+            ];
+
+            for (let url of urls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) return await res.json();
+                } catch (e) {
+                    console.warn(`GeoJSON 加载失败，重试下一个源: ${url}`);
+                }
+            }
+            throw new Error('无法加载地图底图，请检查网络连接。');
+        }
+
+        // 获取 TXT 文本数据
+        async function fetchTxtData() {
+            try {
+                const res = await fetch(DATA_URL);
+                if (!res.ok) throw new Error(`HTTP 状态码: ${res.status}`);
+                return await res.text();
+            } catch (e) {
+                throw new Error(`无法获取机构文本数据（可能是 CORS 跨域限制或链接失效）。<br>URL: ${DATA_URL}`);
+            }
+        }
+
+        // 强化后的 TXT 分析逻辑
         function parseTextData(text) {
             const counts = {};
-            provinceList.forEach(p => counts[p] = 0); // 初始化各省份为0
+            provinceMap.forEach(item => counts[item.name] = 0);
 
-            const lines = text.split('\n');
+            // 按行分割
+            const lines = text.split(/\r?\n/);
+
             lines.forEach(line => {
+                // 去除首尾空白字符
                 const trimmed = line.trim();
+
+                // 规则 1：忽略空行或只包含空白字符的行
                 if (!trimmed) return;
 
-                // 尝试匹配每行开头的省份
-                for (let prov of provinceList) {
-                    // 如果行首包含该省名称（如 "湖南湘潭岳塘区..."）
-                    if (trimmed.startsWith(prov)) {
-                        counts[prov]++;
-                        break; // 匹配到对应省份后停止，继续分析下一行
+                // 规则 2：匹配地名（检查是否以已知省份开头）
+                let matched = false;
+                for (let prov of provinceMap) {
+                    if (prov.pattern.test(trimmed)) {
+                        counts[prov.name]++;
+                        matched = true;
+                        break; // 匹配到一个省份即跳出
                     }
                 }
+
+                // 规则 3：若无法匹配到任何已知省份，自动忽略该行（静默过滤非地名干扰行）
             });
 
-            // 转换成 ECharts 需要的数组格式 [{name: '湖南', value: 12}, ...]
-            return Object.keys(counts).map(prov => ({
-                name: prov,
-                value: counts[prov]
+            return Object.keys(counts).map(provName => ({
+                name: provName,
+                value: counts[provName]
             }));
         }
 
-        // 核心步骤 3：渲染 ECharts 地图
+        // 渲染地图
         function renderMap(data) {
-            // 计算当前数据中的最大值，用于视觉映射
-            const maxVal = Math.max(...data.map(item => item.value), 10);
+            const maxVal = Math.max(...data.map(item => item.value), 5);
             const selectedColorKey = document.getElementById('colorScheme').value;
 
+            // 针对移动端屏幕做尺寸适配
+            const isMobile = window.innerWidth <= 600;
+
             const option = {
-                title: {
-                    text: '全国机构分布热力图',
-                    left: 'center'
-                },
                 tooltip: {
                     trigger: 'item',
-                    formatter: '{b}: {c} 家机构'
+                    formatter: '{b}<br/>机构数量：<strong>{c}</strong> 家',
+                    confine: true // 限制 Tooltip 在图表容器内，防止移动端超出屏幕
                 },
                 visualMap: {
                     min: 0,
                     max: maxVal,
-                    left: 'left',
-                    bottom: 'bottom',
+                    left: isMobile ? '5%' : '10%',
+                    bottom: isMobile ? '5%' : '8%',
                     text: ['高', '低'],
                     calculable: true,
-                    // 动态选择颜色渐变库
+                    itemWidth: isMobile ? 12 : 15,
+                    itemHeight: isMobile ? 80 : 120,
+                    textStyle: {
+                        fontSize: isMobile ? 10 : 12
+                    },
                     inRange: {
                         color: colorPalette[selectedColorKey]
                     }
@@ -148,21 +309,33 @@
                         name: '机构数量',
                         type: 'map',
                         map: 'china',
-                        roam: true, // 支持缩放和拖拽
+                        roam: true, // 允许手势缩放和平移
+                        zoom: 1.2,  // 初始缩放比例
                         label: {
-                            show: true,
-                            fontSize: 10
+                            show: !isMobile, // 移动端默认隐藏名称标签，避免文字重叠挤压
+                            fontSize: 10,
+                            color: '#333'
+                        },
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: 12,
+                                fontWeight: 'bold'
+                            },
+                            itemStyle: {
+                                areaColor: '#fde047' // 触摸高亮颜色
+                            }
                         },
                         data: data
                     }
                 ]
             };
 
-            myChart.setOption(option);
+            myChart.setOption(option, true);
         }
 
-        // 页面初始化加载地图底图
-        init();
+        // 启动应用
+        start();
     </script>
 </body>
 </html>
