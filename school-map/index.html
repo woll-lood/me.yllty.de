@@ -120,7 +120,7 @@
     <div class="notice-bar">
         <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别；
         港澳台区域暂无对应统计数据，地图矢量边界完整保留；
-        ​地图底图来源： 阿里云 DataV.GeoJSON
+        ​地图矢量来源：Apache ECharts 开源china.json矢量文件。
     </div>
 
     <div id="map-container">
@@ -212,7 +212,7 @@
 
         async function fetchChinaGeoJson() {
             const urls = [
-                'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'
+                'https://fastly.jsdelivr.net/npm/echarts@5/dist/map/json/china.json'
             ];
 
             for (let url of urls) {
