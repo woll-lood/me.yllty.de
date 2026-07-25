@@ -15,6 +15,7 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            position: relative;
         }
         
         /* 顶部控制栏 */
@@ -31,7 +32,7 @@
         .controls { display: flex; align-items: center; gap: 8px; }
         label { font-size: 12px; color: #6b7280; display: inline-flex; align-items: center; gap: 3px; }
         select {
-            padding: 4px 8px;
+            padding: 4px 6px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             background-color: #f9fafb;
@@ -72,7 +73,7 @@
             font-size: 12px;
             color: #d48806;
             line-height: 1.6;
-            text-align: left; /* 文字靠左对齐 */
+            text-align: left;
             position: relative;
             z-index: 9;
         }
@@ -100,7 +101,6 @@
             flex: 1;
             width: 100%;
             position: relative;
-            /* 禁用默认双击/双指手势干扰，交由 ECharts 处理 */
             touch-action: none;
         }
 
@@ -144,6 +144,141 @@
             word-break: break-all;
             line-height: 1.6;
         }
+
+        /* 底部可拖拽抽屉式卡片 */
+        .rank-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+            z-index: 15;
+            display: flex;
+            flex-direction: column;
+            max-height: 50vh;
+            touch-action: none;
+            transition: transform 0.25s ease-out;
+        }
+
+        /* 顶部小横条指示器 */
+        .drag-handle-wrapper {
+            width: 100%;
+            padding: 8px 0 4px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .drag-handle {
+            width: 36px;
+            height: 4px;
+            background-color: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .rank-header {
+            padding: 4px 14px 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .rank-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            white-space: nowrap;
+        }
+
+        .rank-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .rank-controls label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .rank-body {
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            touch-action: pan-y;
+        }
+
+        /* 排名条目列表 */
+        .rank-item {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            gap: 10px;
+        }
+
+        .rank-num {
+            width: 20px;
+            font-weight: bold;
+            color: #9ca3af;
+            text-align: right;
+        }
+
+        .rank-num.top3 {
+            color: #ef4444;
+        }
+
+        .rank-name {
+            width: 48px;
+            font-weight: 500;
+            color: #1f2937;
+            white-space: nowrap;
+        }
+
+        .rank-bar-wrapper {
+            flex: 1;
+            background: #f3f4f6;
+            height: 14px;
+            border-radius: 7px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .rank-bar-inner {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 7px;
+            transition: width 0.4s ease, background-color 0.3s ease;
+        }
+
+        .rank-value {
+            width: 70px;
+            text-align: right;
+            font-size: 11px;
+            color: #4b5563;
+            white-space: nowrap;
+        }
+
+        /* 底部版权信息栏 */
+        footer {
+            background-color: #f8fafc;
+            border-top: 1px solid #f1f5f9;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 11px;
+            color: #64748b;
+            user-select: none;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -158,7 +293,7 @@
                 <option value="green">墨绿</option>
                 <option value="purple">紫色</option>
             </select>
-            <label class="checkbox-label" title="勾选后热力图颜色仅根据现存机构数量计算，不影响卡片信息显示">
+            <label class="checkbox-label" title="勾选后热力图颜色及默认排序仅根据现存机构数量计算，不影响卡片信息显示">
                 <input type="checkbox" id="excludeCancelled"> 排除注销
             </label>
         </div>
@@ -182,6 +317,32 @@
             <div id="loading-text">正在分析数据并加载地图...</div>
             <div id="error-detail" style="display: none;" class="error-box"></div>
         </div>
+    </div>
+
+    <div class="rank-panel" id="rankPanel">
+        <div class="drag-handle-wrapper" id="dragHandleWrapper">
+            <div class="drag-handle"></div>
+        </div>
+        <div class="rank-header">
+            <div class="rank-title">各省机构数据排名</div>
+            <div class="rank-controls">
+                <label for="rankSortField">指标：</label>
+                <select id="rankSortField">
+                    <option value="total">总数</option>
+                    <option value="active">现存数</option>
+                    <option value="cancelled">注销数</option>
+                </select>
+                <select id="rankSortOrder">
+                    <option value="desc">降序</option>
+                    <option value="asc">升序</option>
+                </select>
+            </div>
+        </div>
+        <div class="rank-body" id="rankList">
+            </div>
+        <footer>
+            Copyright © 2026 yl_lty. All rights reserved.
+        </footer>
     </div>
 
     <script>
@@ -252,9 +413,8 @@
 
         async function start() {
             try {
-                // 设置触屏灵敏度降低配置（降低手势触发频率）
                 myChart = echarts.init(mapContainer, null, {
-                    touchResponseSensitivity: 0.3 // 降低触屏响应灵敏度
+                    touchResponseSensitivity: 0.3
                 });
                 window.addEventListener('resize', () => myChart.resize());
 
@@ -267,6 +427,7 @@
                 cachedParsedData = parseTextData(textData);
 
                 renderMap(cachedParsedData);
+                renderRankList(cachedParsedData);
                 loadingMask.style.display = 'none';
 
             } catch (error) {
@@ -341,12 +502,11 @@
             const selectedColorKey = document.getElementById('colorScheme').value;
             const isMobile = window.innerWidth <= 600;
 
-            // 组装 map 数据
             const seriesData = Object.keys(countsData).map(provName => {
                 const item = countsData[provName];
                 return {
                     name: provName,
-                    value: excludeCancelled ? item.active : item.total, // 仅影响热力图深度计算
+                    value: excludeCancelled ? item.active : item.total,
                     total: item.total,
                     cancelled: item.cancelled,
                     active: item.active
@@ -376,7 +536,7 @@
                     min: 0,
                     max: maxVal,
                     left: '5%',
-                    bottom: '5%',
+                    bottom: '8%',
                     text: ['高', '低'],
                     calculable: true,
                     itemWidth: 12,
@@ -405,12 +565,186 @@
             myChart.setOption(option, true);
         }
 
-        document.getElementById('colorScheme').addEventListener('change', () => {
-            if (cachedParsedData) renderMap(cachedParsedData);
+        /* 渲染排名列表 */
+        function renderRankList(countsData) {
+            const excludeCancelled = document.getElementById('excludeCancelled').checked;
+            const field = document.getElementById('rankSortField').value;
+            const sortOrder = document.getElementById('rankSortOrder').value;
+            const colorKey = document.getElementById('colorScheme').value;
+
+            // 计算全国总数（用于百分比和进度条）
+            let nationalTotal = 0;
+            const list = Object.keys(countsData).map(name => {
+                const item = countsData[name];
+                nationalTotal += excludeCancelled ? item.active : item.total;
+                return {
+                    name,
+                    total: item.total,
+                    active: item.active,
+                    cancelled: item.cancelled,
+                    value: item[field]
+                };
+            });
+
+            // 排序
+            list.sort((a, b) => {
+                return sortOrder === 'desc' ? b.value - a.value : a.value - b.value;
+            });
+
+            const rankListEl = document.getElementById('rankList');
+            const themeColor = colorPalette[colorKey][2];
+
+            rankListEl.innerHTML = list.map((item, index) => {
+                const calcBase = excludeCancelled ? item.active : item.total;
+                const percent = nationalTotal > 0 ? ((calcBase / nationalTotal) * 100).toFixed(1) : 0;
+                const displayNum = index + 1;
+
+                return `
+                    <div class="rank-item">
+                        <div class="rank-num ${displayNum <= 3 ? 'top3' : ''}">${displayNum}</div>
+                        <div class="rank-name">${item.name}</div>
+                        <div class="rank-bar-wrapper">
+                            <div class="rank-bar-inner" style="width: ${percent}%; background-color: ${themeColor}"></div>
+                        </div>
+                        <div class="rank-value">
+                            ${item.value} 家 <span style="color:#9ca3af; font-size:10px;">(${percent}%)</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* 拖拽与折叠手势处理 */
+        const rankPanel = document.getElementById('rankPanel');
+        const dragHandleWrapper = document.getElementById('dragHandleWrapper');
+
+        let isCollapsed = false;
+        let startY = 0;
+        let currentY = 0;
+        let isDragging = false;
+
+        function getCollapsedY() {
+            // 折叠后仅保留顶部 indicator + header 高度
+            return rankPanel.offsetHeight - 52;
+        }
+
+        function setPanelTranslate(translateY, animate = false) {
+            rankPanel.style.transition = animate ? 'transform 0.25s ease-out' : 'none';
+            rankPanel.style.transform = `translateY(${translateY}px)`;
+        }
+
+        function togglePanel() {
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                setPanelTranslate(getCollapsedY(), true);
+            } else {
+                setPanelTranslate(0, true);
+            }
+            setTimeout(() => { if (myChart) myChart.resize(); }, 300);
+        }
+
+        // 拖拽 Handle 各种事件支持 (Touch / Mouse)
+        dragHandleWrapper.addEventListener('click', () => {
+            if (!isDragging) togglePanel();
         });
 
-        document.getElementById('excludeCancelled').addEventListener('change', () => {
-            if (cachedParsedData) renderMap(cachedParsedData);
+        dragHandleWrapper.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+            isDragging = false;
+        }, { passive: true });
+
+        dragHandleWrapper.addEventListener('touchmove', (e) => {
+            currentY = e.touches[0].clientY;
+            const diffY = currentY - startY;
+            if (Math.abs(diffY) > 5) isDragging = true;
+
+            let baseTranslate = isCollapsed ? getCollapsedY() : 0;
+            let targetY = baseTranslate + diffY;
+            
+            // 范围限制与阻尼
+            if (targetY < -20) targetY = -20;
+            if (targetY > getCollapsedY() + 20) targetY = getCollapsedY() + 20;
+
+            setPanelTranslate(targetY, false);
+        }, { passive: true });
+
+        dragHandleWrapper.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            const diffY = currentY - startY;
+            if (diffY > 40) {
+                isCollapsed = true;
+                setPanelTranslate(getCollapsedY(), true);
+            } else if (diffY < -40) {
+                isCollapsed = false;
+                setPanelTranslate(0, true);
+            } else {
+                setPanelTranslate(isCollapsed ? getCollapsedY() : 0, true);
+            }
+            setTimeout(() => { if (myChart) myChart.resize(); }, 300);
+        });
+
+        // Mouse Drag Support for Desktop
+        let isMouseDown = false;
+        dragHandleWrapper.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            startY = e.clientY;
+            isDragging = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            currentY = e.clientY;
+            const diffY = currentY - startY;
+            if (Math.abs(diffY) > 5) isDragging = true;
+
+            let baseTranslate = isCollapsed ? getCollapsedY() : 0;
+            let targetY = baseTranslate + diffY;
+            if (targetY < -20) targetY = -20;
+            if (targetY > getCollapsedY() + 20) targetY = getCollapsedY() + 20;
+
+            setPanelTranslate(targetY, false);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!isMouseDown) return;
+            isMouseDown = false;
+            if (!isDragging) return;
+            const diffY = currentY - startY;
+            if (diffY > 40) {
+                isCollapsed = true;
+                setPanelTranslate(getCollapsedY(), true);
+            } else if (diffY < -40) {
+                isCollapsed = false;
+                setPanelTranslate(0, true);
+            } else {
+                setPanelTranslate(isCollapsed ? getCollapsedY() : 0, true);
+            }
+            setTimeout(() => { if (myChart) myChart.resize(); }, 300);
+        });
+
+        // 绑定筛选事件
+        document.getElementById('colorScheme').addEventListener('change', () => {
+            if (cachedParsedData) {
+                renderMap(cachedParsedData);
+                renderRankList(cachedParsedData);
+            }
+        });
+
+        document.getElementById('excludeCancelled').addEventListener('change', (e) => {
+            if (cachedParsedData) {
+                // 当勾选/取消勾选“排除注销”时，指标同步调整为现存数/总数
+                document.getElementById('rankSortField').value = e.target.checked ? 'active' : 'total';
+                renderMap(cachedParsedData);
+                renderRankList(cachedParsedData);
+            }
+        });
+
+        document.getElementById('rankSortField').addEventListener('change', () => {
+            if (cachedParsedData) renderRankList(cachedParsedData);
+        });
+
+        document.getElementById('rankSortOrder').addEventListener('change', () => {
+            if (cachedParsedData) renderRankList(cachedParsedData);
         });
 
         start();
