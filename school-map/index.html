@@ -28,8 +28,8 @@
             z-index: 10;
         }
         h1 { font-size: 15px; font-weight: 600; color: #1f2937; }
-        .controls { display: flex; align-items: center; gap: 6px; }
-        label { font-size: 12px; color: #6b7280; }
+        .controls { display: flex; align-items: center; gap: 8px; }
+        label { font-size: 12px; color: #6b7280; display: inline-flex; align-items: center; gap: 3px; }
         select {
             padding: 4px 8px;
             border: 1px solid #d1d5db;
@@ -38,17 +38,61 @@
             font-size: 12px;
             outline: none;
         }
+        .checkbox-label {
+            cursor: pointer;
+            user-select: none;
+        }
+        .checkbox-label input {
+            cursor: pointer;
+        }
+
+        /* 蓝色群宣传通知栏 */
+        .group-notice-bar {
+            background: #e6f7ff;
+            border-bottom: 1px solid #91d5ff;
+            padding: 8px 32px 8px 12px;
+            font-size: 12px;
+            color: #096dd9;
+            text-align: center;
+            position: relative;
+            z-index: 9;
+        }
+        .group-notice-bar a {
+            color: #096dd9;
+            font-weight: bold;
+            text-decoration: underline;
+            cursor: pointer;
+        }
 
         /* 统一声明栏 */
         .notice-bar {
             background: #fffbe6;
             border-bottom: 1px solid #ffe58f;
-            padding: 8px 12px;
+            padding: 8px 32px 8px 14px;
             font-size: 12px;
             color: #d48806;
-            line-height: 1.4;
-            text-align: center;
+            line-height: 1.6;
+            text-align: left; /* 文字靠左对齐 */
+            position: relative;
             z-index: 9;
+        }
+
+        /* 关闭按钮标准样式 */
+        .close-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            opacity: 0.6;
+        }
+        .close-btn:hover {
+            opacity: 1;
         }
 
         /* 地图主容器 */
@@ -114,13 +158,22 @@
                 <option value="green">墨绿</option>
                 <option value="purple">紫色</option>
             </select>
+            <label class="checkbox-label" title="勾选后热力图颜色仅根据现存机构数量计算，不影响卡片信息显示">
+                <input type="checkbox" id="excludeCancelled"> 排除注销
+            </label>
         </div>
     </header>
 
-    <div class="notice-bar">
-        <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别；
-        港澳台区域暂无对应统计数据，地图矢量边界完整保留；
-        ​地图矢量来源：Apache ECharts 开源china.json矢量文件。
+    <div class="group-notice-bar" id="groupNoticeBar">
+        欢迎加入忆兰反网戒群：<a href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1075965802&card_type=group&source=qrcode" target="_blank" onclick="copyGroupNum('1075965802')">1075965802</a>
+        <button class="close-btn" style="color: #096dd9;" onclick="document.getElementById('groupNoticeBar').style.display='none'" title="关闭">✕</button>
+    </div>
+
+    <div class="notice-bar" id="noticeBar">
+        <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别；<br>
+        港澳台区域暂无对应统计数据，地图矢量边界完整保留；<br>
+        地图矢量来源：Apache ECharts 开源 china.json 矢量文件。
+        <button class="close-btn" style="color: #d48806;" onclick="document.getElementById('noticeBar').style.display='none'" title="关闭">✕</button>
     </div>
 
     <div id="map-container">
@@ -133,6 +186,26 @@
 
     <script>
         const DATA_URL = 'https://me.yllty.de/school-map/schools.txt';
+
+        // 复制群号函数
+        function copyGroupNum(groupNum) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(groupNum);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = groupNum;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('复制失败', err);
+                }
+                document.body.removeChild(textarea);
+            }
+        }
 
         const provinceMap = [
             { name: "北京", pattern: /^北京/ }, { name: "天津", pattern: /^天津/ },
@@ -238,7 +311,9 @@
 
         function parseTextData(text) {
             const counts = {};
-            provinceMap.forEach(item => counts[item.name] = 0);
+            provinceMap.forEach(item => {
+                counts[item.name] = { total: 0, cancelled: 0, active: 0 };
+            });
 
             const lines = text.split(/\r?\n/);
             lines.forEach(line => {
@@ -247,27 +322,54 @@
 
                 for (let prov of provinceMap) {
                     if (prov.pattern.test(trimmed)) {
-                        counts[prov.name]++;
+                        counts[prov.name].total++;
+                        if (trimmed.includes('注销')) {
+                            counts[prov.name].cancelled++;
+                        } else {
+                            counts[prov.name].active++;
+                        }
                         break;
                     }
                 }
             });
 
-            return Object.keys(counts).map(provName => ({
-                name: provName,
-                value: counts[provName]
-            }));
+            return counts;
         }
 
-        function renderMap(data) {
-            const maxVal = Math.max(...data.map(item => item.value), 5);
+        function renderMap(countsData) {
+            const excludeCancelled = document.getElementById('excludeCancelled').checked;
             const selectedColorKey = document.getElementById('colorScheme').value;
             const isMobile = window.innerWidth <= 600;
+
+            // 组装 map 数据
+            const seriesData = Object.keys(countsData).map(provName => {
+                const item = countsData[provName];
+                return {
+                    name: provName,
+                    value: excludeCancelled ? item.active : item.total, // 仅影响热力图深度计算
+                    total: item.total,
+                    cancelled: item.cancelled,
+                    active: item.active
+                };
+            });
+
+            const maxVal = Math.max(...seriesData.map(item => item.value), 5);
 
             const option = {
                 tooltip: {
                     trigger: 'item',
-                    formatter: '{b}<br/>机构数量：<strong>{c}</strong> 家',
+                    formatter: function(params) {
+                        if (!params.data) {
+                            return `<strong>${params.name}</strong><br/>暂无统计数据`;
+                        }
+                        const { total = 0, cancelled = 0, active = 0 } = params.data;
+                        return `
+                            <strong>${params.name}</strong><br/>
+                            总数：<strong>${total}</strong> 家<br/>
+                            注销数：<strong>${cancelled}</strong> 家<br/>
+                            现存数：<strong>${active}</strong> 家
+                        `;
+                    },
                     confine: true
                 },
                 visualMap: {
@@ -286,8 +388,7 @@
                     type: 'map',
                     map: 'china',
                     roam: true,
-                    zoom: 1.1, // 降低默认初始放大倍数
-                    // 【关键点 1】：限制缩放范围（最小1倍，最大2.5倍），防止放大过度展示精细版图纠纷区域
+                    zoom: 1.1,
                     scaleLimit: {
                         min: 1,
                         max: 2.5
@@ -297,7 +398,7 @@
                         label: { show: true, fontSize: 12 },
                         itemStyle: { areaColor: '#fde047' }
                     },
-                    data: data
+                    data: seriesData
                 }]
             };
 
@@ -305,6 +406,10 @@
         }
 
         document.getElementById('colorScheme').addEventListener('change', () => {
+            if (cachedParsedData) renderMap(cachedParsedData);
+        });
+
+        document.getElementById('excludeCancelled').addEventListener('change', () => {
             if (cachedParsedData) renderMap(cachedParsedData);
         });
 
