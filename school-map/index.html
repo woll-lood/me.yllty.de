@@ -433,6 +433,47 @@
             user-select: none;
             width: 100%;
         }
+        .search-box-wrapper {
+            padding: 8px 14px;
+            background: #ffffff;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding-right: 28px;
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+
+            border: none;
+            background: transparent;
+        
+            font-size: 18px;
+            color: #9ca3af;
+
+            cursor: pointer;
+            display: none;
+        }
+
+        .clear-search-btn:hover {
+            color: #374151;
+        }
+
+        .search-result-count {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #6b7280;
+        }
     </style>
 </head>
 <body>
@@ -511,10 +552,16 @@
 
         <div id="orgView" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
             <div class="search-box-wrapper">
-                <input type="text" id="searchInput" class="search-input" placeholder="搜索机构名称、省/市、法人...">
+                <div class="search-input-wrapper">
+                    <input type="text" id="searchInput" class="search-input" placeholder="搜索机构名称、省/市、法人...">
+                    <button id="clearSearchBtn" class="clear-search-btn">×</button>
+                </div>
+
                 <select id="provinceFilter" style="max-width: 95px;">
                     <option value="">全部省份</option>
                 </select>
+
+                <div id="searchResultCount" class="search-result-count"></div>
             </div>
             <div class="rank-body" id="orgListContainer"></div>
         </div>
@@ -970,7 +1017,7 @@
             }
         }
 
-        function filterAndRenderOrgs() {
+                function filterAndRenderOrgs() {
             const query = document.getElementById('searchInput').value.trim().toLowerCase();
             const provFilter = document.getElementById('provinceFilter').value;
 
@@ -982,6 +1029,11 @@
                     item.legalPerson.toLowerCase().includes(query);
                 return matchProv && matchQuery;
             });
+
+            const countElement = document.getElementById('searchResultCount');
+            if (countElement) {
+                countElement.textContent = `共 ${filteredOrgList.length} 个结果`;
+            }
 
             pageIndex = 1;
             renderOrgCards(true);
@@ -1185,9 +1237,23 @@
 
         // 绑定搜索与筛选控件事件
         let searchTimer = null;
-        document.getElementById('searchInput').addEventListener('input', () => {
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+        searchInput.addEventListener('input', () => {
             clearTimeout(searchTimer);
+
+            clearSearchBtn.style.display =
+                searchInput.value ? 'block' : 'none';
+
             searchTimer = setTimeout(() => filterAndRenderOrgs(), 200);
+        });
+
+        clearSearchBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearchBtn.style.display = 'none';
+
+            filterAndRenderOrgs();
         });
 
         document.getElementById('provinceFilter').addEventListener('change', filterAndRenderOrgs);
