@@ -465,7 +465,7 @@
     <div class="notice-bar" id="noticeBar">
         <strong>声明：</strong>统计不完全，数据未经完全证实，请注意甄别；<br>
         港澳台区域暂无对应统计数据，地图矢量边界完整保留；<br>
-        地图矢量来源：Apache ECharts 开源 china.json 矢量文件；<br>
+        地图来源：天地图 审图号：GS（2024）0650号；<br>
         若有侵权，请联系 yl_lty@outlook.com 以删除。
         <button class="close-btn" style="color: #d48806;" onclick="closeNotice('noticeBar')" title="关闭">✕</button>
     </div>
@@ -566,6 +566,42 @@
             purple: ['#faf5ff', '#d8b4fe', '#a855f7', '#6b21a8', '#3b0764']
         };
 
+
+        // 地图 GeoJSON 名称适配：名单使用简称，china.json 使用全称
+        function provinceToMapName(name) {
+            const map = {
+                "北京":"北京市", "天津":"天津市", "上海":"上海市", "重庆":"重庆市",
+                "河北":"河北省", "山西":"山西省", "辽宁":"辽宁省", "吉林":"吉林省",
+                "黑龙江":"黑龙江省", "江苏":"江苏省", "浙江":"浙江省", "安徽":"安徽省",
+                "福建":"福建省", "江西":"江西省", "山东":"山东省", "河南":"河南省",
+                "湖北":"湖北省", "湖南":"湖南省", "广东":"广东省", "海南":"海南省",
+                "四川":"四川省", "贵州":"贵州省", "云南":"云南省", "陕西":"陕西省",
+                "甘肃":"甘肃省", "青海":"青海省", "台湾":"台湾省",
+                "内蒙古":"内蒙古自治区", "广西":"广西壮族自治区",
+                "西藏":"西藏自治区", "宁夏":"宁夏回族自治区",
+                "新疆":"新疆维吾尔自治区", "香港":"香港特别行政区",
+                "澳门":"澳门特别行政区"
+            };
+            return map[name] || name;
+        }
+
+        function mapNameToProvince(name) {
+            const map = {
+                "北京市":"北京", "天津市":"天津", "上海市":"上海", "重庆市":"重庆",
+                "河北省":"河北", "山西省":"山西", "辽宁省":"辽宁", "吉林省":"吉林",
+                "黑龙江省":"黑龙江", "江苏省":"江苏", "浙江省":"浙江", "安徽省":"安徽",
+                "福建省":"福建", "江西省":"江西", "山东省":"山东", "河南省":"河南",
+                "湖北省":"湖北", "湖南省":"湖南", "广东省":"广东", "海南省":"海南",
+                "四川省":"四川", "贵州省":"贵州", "云南省":"云南", "陕西省":"陕西",
+                "甘肃省":"甘肃", "青海省":"青海", "台湾省":"台湾",
+                "内蒙古自治区":"内蒙古", "广西壮族自治区":"广西",
+                "西藏自治区":"西藏", "宁夏回族自治区":"宁夏",
+                "新疆维吾尔自治区":"新疆", "香港特别行政区":"香港",
+                "澳门特别行政区":"澳门"
+            };
+            return map[name] || name;
+        }
+
         const mapContainer = document.getElementById('map-container');
         const loadingMask = document.getElementById('loading-mask');
         const loadingText = document.getElementById('loading-text');
@@ -624,9 +660,16 @@
 
         async function start() {
             try {
-                myChart = echarts.init(mapContainer, null, { touchResponseSensitivity: 0.3 });
+                myChart = echarts.init(mapContainer, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: true,
+                    touchResponseSensitivity: 0.3
+                });
+
                 window.addEventListener('resize', () => {
-                    if (myChart) myChart.resize();
+                    if (myChart) {
+                        myChart.resize();
+                    }
                     setPanelState(currentState, false);
                 });
 
@@ -665,7 +708,7 @@
         }
 
         async function fetchChinaGeoJson() {
-            const urls = ['https://registry.npmmirror.com/echarts/4.0.4/files/map/json/china.json'];
+            const urls = ['https://me.yllty.de/school-map/china.json'];
             for (let url of urls) {
                 try {
                     const res = await fetchWithTimeout(url, {}, 8000);
@@ -778,7 +821,7 @@
                 else if (selectedMetric === 'cancelRate') val = Number(cancelRateNum.toFixed(1));
 
                 return {
-                    name: provName,
+                    name: provinceToMapName(provName),
                     value: val,
                     total: item.total,
                     cancelled: item.cancelled,
@@ -838,7 +881,7 @@
         function setupMapClick() {
             myChart.on('click', function(params) {
                 if (params.name) {
-                    document.getElementById('provinceFilter').value = params.name;
+                    document.getElementById('provinceFilter').value = mapNameToProvince(params.name);
                     //switchTab('org');
                     filterAndRenderOrgs();
                     //setPanelState('half');
