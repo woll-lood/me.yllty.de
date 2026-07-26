@@ -40,13 +40,6 @@
             font-size: 12px;
             outline: none;
         }
-        .checkbox-label {
-            cursor: pointer;
-            user-select: none;
-        }
-        .checkbox-label input {
-            cursor: pointer;
-        }
 
         /* 蓝色群宣传通知栏 */
         .group-notice-bar {
@@ -268,7 +261,7 @@
         }
 
         .rank-value {
-            width: 70px;
+            width: 85px;
             text-align: right;
             font-size: 11px;
             color: #4b5563;
@@ -300,9 +293,13 @@
                 <option value="green">墨绿</option>
                 <option value="purple">紫色</option>
             </select>
-            <label class="checkbox-label" title="勾选后热力图颜色及默认排序仅根据现存机构数量计算，不影响卡片信息显示">
-                <input type="checkbox" id="excludeCancelled"> 排除注销
-            </label>
+            <label for="mapMetric">依据：</label>
+            <select id="mapMetric">
+                <option value="total" selected>总数</option>
+                <option value="active">现存数</option>
+                <option value="cancelled">注销数</option>
+                <option value="cancelRate">注销率</option>
+            </select>
         </div>
     </header>
 
@@ -336,9 +333,10 @@
                 <div class="rank-controls">
                     <label for="rankSortField">指标：</label>
                     <select id="rankSortField">
-                        <option value="total">总数</option>
+                        <option value="total" selected>总数</option>
                         <option value="active">现存数</option>
                         <option value="cancelled">注销数</option>
+                        <option value="cancelRate">注销率</option>
                     </select>
                     <select id="rankSortOrder">
                         <option value="desc">降序</option>
@@ -348,7 +346,7 @@
             </div>
         </div>
         <div class="rank-body" id="rankList">
-            </div>
+        </div>
         <footer>
             Copyright © 2026 yl_lty. All rights reserved.
         </footer>
@@ -502,7 +500,7 @@
                 for (let prov of provinceMap) {
                     if (prov.pattern.test(trimmed)) {
                         counts[prov.name].total++;
-                        if (trimmed.includes('注销')) {
+                        if (trimmed.includes('注销') || trimmed.includes('关闭')) {
                             counts[prov.name].cancelled++;
                         } else {
                             counts[prov.name].active++;
@@ -516,22 +514,30 @@
         }
 
         function renderMap(countsData) {
-            const excludeCancelled = document.getElementById('excludeCancelled').checked;
+            const selectedMetric = document.getElementById('mapMetric').value;
             const selectedColorKey = document.getElementById('colorScheme').value;
             const isMobile = window.innerWidth <= 600;
 
             const seriesData = Object.keys(countsData).map(provName => {
                 const item = countsData[provName];
+                const cancelRateNum = item.total > 0 ? (item.cancelled / item.total) * 100 : 0;
+                
+                let val = item.total;
+                if (selectedMetric === 'active') val = item.active;
+                else if (selectedMetric === 'cancelled') val = item.cancelled;
+                else if (selectedMetric === 'cancelRate') val = Number(cancelRateNum.toFixed(1));
+
                 return {
                     name: provName,
-                    value: excludeCancelled ? item.active : item.total,
+                    value: val,
                     total: item.total,
                     cancelled: item.cancelled,
-                    active: item.active
+                    active: item.active,
+                    cancelRate: cancelRateNum.toFixed(1)
                 };
             });
 
-            const maxVal = Math.max(...seriesData.map(item => item.value), 5);
+            const maxVal = Math.max(...seriesData.map(item => item.value), selectedMetric === 'cancelRate' ? 10 : 5);
 
             const option = {
                 tooltip: {
@@ -540,12 +546,13 @@
                         if (!params.data) {
                             return `<strong>${params.name}</strong><br/>暂无统计数据`;
                         }
-                        const { total = 0, cancelled = 0, active = 0 } = params.data;
+                        const { total = 0, cancelled = 0, active = 0, cancelRate = '0.0' } = params.data;
                         return `
                             <strong>${params.name}</strong><br/>
                             总数：<strong>${total}</strong> 家<br/>
+                            现存数：<strong>${active}</strong> 家<br/>
                             注销数：<strong>${cancelled}</strong> 家<br/>
-                            现存数：<strong>${active}</strong> 家
+                            注销率：<strong>${cancelRate}%</strong>
                         `;
                     },
                     confine: true
@@ -555,14 +562,14 @@
                     max: maxVal,
                     left: '5%',
                     bottom: '8%',
-                    text: ['高', '低'],
+                    text: selectedMetric === 'cancelRate' ? ['高 (%)', '低 (%)'] : ['高', '低'],
                     calculable: true,
                     itemWidth: 12,
                     itemHeight: 90,
                     inRange: { color: colorPalette[selectedColorKey] }
                 },
                 series: [{
-                    name: '机构数量',
+                    name: '机构分布',
                     type: 'map',
                     map: 'china',
                     roam: true,
@@ -585,22 +592,28 @@
 
         /* 渲染排名列表 */
         function renderRankList(countsData) {
-            const excludeCancelled = document.getElementById('excludeCancelled').checked;
             const field = document.getElementById('rankSortField').value;
             const sortOrder = document.getElementById('rankSortOrder').value;
             const colorKey = document.getElementById('colorScheme').value;
 
-            // 计算全国总数（用于百分比和进度条）
             let nationalTotal = 0;
             const list = Object.keys(countsData).map(name => {
                 const item = countsData[name];
-                nationalTotal += excludeCancelled ? item.active : item.total;
+                nationalTotal += item.total;
+                
+                const cancelRate = item.total > 0 ? (item.cancelled / item.total) * 100 : 0;
+                let val = item[field];
+                if (field === 'cancelRate') {
+                    val = cancelRate;
+                }
+
                 return {
                     name,
                     total: item.total,
                     active: item.active,
                     cancelled: item.cancelled,
-                    value: item[field]
+                    cancelRate,
+                    value: val
                 };
             });
 
@@ -613,19 +626,29 @@
             const themeColor = colorPalette[colorKey][2];
 
             rankListEl.innerHTML = list.map((item, index) => {
-                const calcBase = excludeCancelled ? item.active : item.total;
-                const percent = nationalTotal > 0 ? ((calcBase / nationalTotal) * 100).toFixed(1) : 0;
+                const percent = nationalTotal > 0 ? ((item.total / nationalTotal) * 100).toFixed(1) : 0;
                 const displayNum = index + 1;
+
+                let valueDisplay = '';
+                let barWidthPercent = percent;
+
+                if (field === 'cancelRate') {
+                    valueDisplay = `${item.cancelRate.toFixed(1)}% <span style="color:#9ca3af; font-size:10px;">(${item.cancelled}/${item.total})</span>`;
+                    barWidthPercent = item.cancelRate.toFixed(1);
+                } else {
+                    valueDisplay = `${item.value} 家 <span style="color:#9ca3af; font-size:10px;">(${percent}%)</span>`;
+                    barWidthPercent = percent;
+                }
 
                 return `
                     <div class="rank-item">
                         <div class="rank-num ${displayNum <= 3 ? 'top3' : ''}">${displayNum}</div>
                         <div class="rank-name">${item.name}</div>
                         <div class="rank-bar-wrapper">
-                            <div class="rank-bar-inner" style="width: ${percent}%; background-color: ${themeColor}"></div>
+                            <div class="rank-bar-inner" style="width: ${barWidthPercent}%; background-color: ${themeColor}"></div>
                         </div>
                         <div class="rank-value">
-                            ${item.value} 家 <span style="color:#9ca3af; font-size:10px;">(${percent}%)</span>
+                            ${valueDisplay}
                         </div>
                     </div>
                 `;
@@ -642,7 +665,6 @@
         let isDragging = false;
 
         function getCollapsedY() {
-            // 折叠后留出的高度（即整个 dragArea 的高度）
             return rankPanel.offsetHeight - dragArea.offsetHeight;
         }
 
@@ -661,7 +683,6 @@
             setTimeout(() => { if (myChart) myChart.resize(); }, 300);
         }
 
-        // 绑定拖拽区域（不阻断内部 <select> 的点击）
         dragArea.addEventListener('click', (e) => {
             if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION' || e.target.tagName === 'LABEL') {
                 return;
@@ -706,7 +727,6 @@
             setTimeout(() => { if (myChart) myChart.resize(); }, 300);
         });
 
-        // 桌面端鼠标拖拽支持
         let isMouseDown = false;
         dragArea.addEventListener('mousedown', (e) => {
             if (e.target.tagName === 'SELECT') return;
@@ -754,14 +774,14 @@
             }
         });
 
-        document.getElementById('excludeCancelled').addEventListener('change', (e) => {
+        // 地图指标单独变动
+        document.getElementById('mapMetric').addEventListener('change', () => {
             if (cachedParsedData) {
-                document.getElementById('rankSortField').value = e.target.checked ? 'active' : 'total';
                 renderMap(cachedParsedData);
-                renderRankList(cachedParsedData);
             }
         });
 
+        // 排名面板指标单独变动
         document.getElementById('rankSortField').addEventListener('change', () => {
             if (cachedParsedData) renderRankList(cachedParsedData);
         });
