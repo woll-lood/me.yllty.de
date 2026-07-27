@@ -725,7 +725,7 @@
                     fetchTxtData()
                 ]);
 
-                echarts.registerMap('china', geoJson);
+                echarts.registerMap('_china', geoJson);
                 
                 const parsed = parseTextData(textData);
                 cachedParsedData = parsed.counts;
@@ -909,7 +909,7 @@
                 series: [{
                     name: '机构分布',
                     type: 'map',
-                    map: 'china',
+                    map: '_china',
                     roam: true,
                     zoom: 1.1,
                     scaleLimit: { min: 1, max: 2.5 },
