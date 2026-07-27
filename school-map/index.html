@@ -710,7 +710,7 @@
                 myChart = echarts.init(mapContainer, null, {
                     renderer: 'canvas',
                     useDirtyRect: true,
-                    touchResponseSensitivity: 0.1
+                    touchResponseSensitivity: 1
                 });
 
                 window.addEventListener('resize', () => {
@@ -912,6 +912,7 @@
                     map: '_china',
                     roam: true,
                     zoom: 1.1,
+                    zoomSensitivity: 0.5,
                     scaleLimit: { min: 0.6, max: 12 },
                     label: { show: !isMobile, fontSize: 10 },
                     emphasis: {
