@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -31,7 +32,12 @@
             }, true);
     </script> -->
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: #f4f6f9;
@@ -42,21 +48,39 @@
             overflow: hidden;
             position: relative;
         }
-        
+
         /* 顶部控制栏 */
         header {
             background: #ffffff;
             padding: 10px 14px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 10;
             flex-shrink: 0;
         }
-        h1 { font-size: 15px; font-weight: 600; color: #1f2937; }
-        .controls { display: flex; align-items: center; gap: 8px; }
-        label { font-size: 12px; color: #6b7280; display: inline-flex; align-items: center; gap: 3px; }
+
+        h1 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #6b7280;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
         select {
             padding: 4px 6px;
             border: 1px solid #d1d5db;
@@ -78,6 +102,7 @@
             z-index: 9;
             flex-shrink: 0;
         }
+
         .group-notice-bar a {
             color: #096dd9;
             font-weight: bold;
@@ -113,7 +138,10 @@
             padding: 4px;
             opacity: 0.6;
         }
-        .close-btn:hover { opacity: 1; }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
 
         /* 地图主容器 */
         #map-container {
@@ -127,7 +155,10 @@
         /* 加载中与错误提示遮罩 */
         #loading-mask {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(255, 255, 255, 0.95);
             display: flex;
             flex-direction: column;
@@ -139,6 +170,7 @@
             font-size: 14px;
             color: #4b5563;
         }
+
         .spinner {
             width: 32px;
             height: 32px;
@@ -148,8 +180,13 @@
             animation: spin 0.8s linear infinite;
             margin-bottom: 12px;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         .error-box {
             background: #fef2f2;
             border: 1px solid #fecaca;
@@ -175,7 +212,7 @@
             max-height: 100vh;
             background: #ffffff;
             border-radius: 16px 16px 0 0;
-            box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
             z-index: 15;
             display: flex;
             flex-direction: column;
@@ -214,6 +251,7 @@
             gap: 16px;
             border-bottom: 1px solid #f1f5f9;
         }
+
         .tab-btn {
             padding: 8px 0;
             font-size: 13px;
@@ -224,9 +262,11 @@
             cursor: pointer;
             position: relative;
         }
+
         .tab-btn.active {
             color: #3b82f6;
         }
+
         .tab-btn.active::after {
             content: '';
             position: absolute;
@@ -268,19 +308,25 @@
             font-size: 12px;
             gap: 10px;
         }
+
         .rank-num {
             width: 20px;
             font-weight: bold;
             color: #9ca3af;
             text-align: right;
         }
-        .rank-num.top3 { color: #ef4444; }
+
+        .rank-num.top3 {
+            color: #ef4444;
+        }
+
         .rank-name {
             width: 48px;
             font-weight: 500;
             color: #1f2937;
             white-space: nowrap;
         }
+
         .rank-bar-wrapper {
             flex: 1;
             background: #f3f4f6;
@@ -289,12 +335,14 @@
             overflow: hidden;
             position: relative;
         }
+
         .rank-bar-inner {
             height: 100%;
             background: #3b82f6;
             border-radius: 7px;
             transition: width 0.4s ease, background-color 0.3s ease;
         }
+
         .rank-value {
             width: 85px;
             text-align: right;
@@ -311,6 +359,7 @@
             display: flex;
             gap: 8px;
         }
+
         .search-input {
             flex: 1;
             padding: 6px 10px;
@@ -320,6 +369,7 @@
             outline: none;
             background: #f9fafb;
         }
+
         .search-input:focus {
             border-color: #3b82f6;
             background: #fff;
@@ -337,23 +387,26 @@
             transition: border-color 0.2s, box-shadow 0.2s;
             cursor: pointer;
         }
+
         .org-card:hover {
             border-color: #93c5fd;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
         }
+
         .org-card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 8px;
         }
+
         .org-title {
             font-size: 13px;
             font-weight: 600;
             color: #111827;
             line-height: 1.4;
         }
-        
+
         /* 状态标签配色 */
         .org-status-tag {
             font-size: 11px;
@@ -362,15 +415,35 @@
             white-space: nowrap;
             font-weight: 500;
         }
+
         /* 存续：绿色 */
-        .status-active { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .status-active {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
         /* 注销：红色 */
-        .status-cancelled { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .status-cancelled {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
         /* 关闭：黄色 */
-        .status-closed { background: #fffbe6; color: #d48806; border: 1px solid #ffe58f; }
+        .status-closed {
+            background: #fffbe6;
+            color: #d48806;
+            border: 1px solid #ffe58f;
+        }
+
         /* 吊销：深红色 */
-        .status-revoked { background: #fef2f2; color: #7f1d1d; border: 1px solid #fca5a5; }
-        
+        .status-revoked {
+            background: #fef2f2;
+            color: #7f1d1d;
+            border: 1px solid #fca5a5;
+        }
+
         .org-info-row {
             display: flex;
             justify-content: space-between;
@@ -378,11 +451,13 @@
             font-size: 11px;
             color: #6b7280;
         }
+
         .org-actions {
             display: flex;
             gap: 8px;
             margin-top: 2px;
         }
+
         .btn-copy {
             padding: 3px 8px;
             font-size: 11px;
@@ -393,13 +468,19 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .btn-copy:hover { background: #e5e7eb; }
+
+        .btn-copy:hover {
+            background: #e5e7eb;
+        }
 
         /* 详情模态弹窗 */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
             z-index: 30;
             display: flex;
             justify-content: center;
@@ -409,25 +490,41 @@
             pointer-events: none;
             transition: opacity 0.25s ease;
         }
+
         .modal-overlay.active {
             opacity: 1;
             pointer-events: auto;
         }
+
         .modal-card {
             background: #ffffff;
             width: 100%;
             max-width: 440px;
             border-radius: 12px;
             padding: 18px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
             gap: 12px;
             position: relative;
         }
-        .modal-title { font-size: 15px; font-weight: 600; color: #111827; padding-right: 24px; }
-        .modal-item { font-size: 12px; color: #4b5563; line-height: 1.6; }
-        .modal-item strong { color: #111827; }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #111827;
+            padding-right: 24px;
+        }
+
+        .modal-item {
+            font-size: 12px;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .modal-item strong {
+            color: #111827;
+        }
 
         /* Toast 轻提示 */
         #toast {
@@ -435,7 +532,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.75);
+            background: rgba(0, 0, 0, 0.75);
             color: #ffffff;
             padding: 8px 16px;
             border-radius: 20px;
@@ -445,7 +542,10 @@
             pointer-events: none;
             transition: opacity 0.2s;
         }
-        #toast.show { opacity: 1; }
+
+        #toast.show {
+            opacity: 1;
+        }
 
         /* 底部版权 */
         footer {
@@ -458,6 +558,7 @@
             user-select: none;
             width: 100%;
         }
+
         .search-box-wrapper {
             padding: 8px 14px;
             background: #ffffff;
@@ -482,7 +583,7 @@
 
             border: none;
             background: transparent;
-        
+
             font-size: 18px;
             color: #9ca3af;
 
@@ -501,6 +602,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <header>
@@ -524,14 +626,40 @@
     </header>
 
     <div class="group-notice-bar" id="groupNoticeBar">
-        欢迎加入忆兰反网戒群：<a href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1075965802&card_type=group&source=qrcode" target="_blank" onclick="copyText('1075965802')">1075965802</a>
+        欢迎加入忆兰反网戒群：<a
+            href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1075965802&card_type=group&source=qrcode"
+            target="_blank" onclick="copyText('1075965802')">1075965802</a>
         <button class="close-btn" style="color: #096dd9;" onclick="closeNotice('groupNoticeBar')" title="关闭">✕</button>
         <br>
-        欢迎加入反网戒｜SCU：<a href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1022538498&card_type=group&source=qrcode" target="_blank" onclick="copyText('1022538498')">1022538498</a><br>
-        信息需要补充、更正？<a href="intent://v.wjx.cn/vm/h4LBImu.aspx#Intent;scheme=https;end" target="_blank" onclick="copyText('https://v.wjx.cn/vm/h4LBImu.aspx#')">点我填写上报信息问卷</a>
-        
+        欢迎加入反网戒｜SCU：<a
+            href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1022538498&card_type=group&source=qrcode"
+            target="_blank" onclick="copyText('1022538498')">1022538498</a><br>
+        信息需要补充、更正？<a href="javascript:void(0);" onclick="goWjxQuestionnaire()">点我填写上报信息问卷</a>
+
+        <script>
+            function goWjxQuestionnaire() {
+                const targetUrl = 'https://wjx.cn';
+
+                // 1. 明确提示用户即将跳出 App，并自动复制链接
+                // 这一步是终极防翻车保障：哪怕在某些极端手机上没能成功拉起浏览器，用户点完确认后也已经拿到了链接
+                const textarea = document.createElement("textarea");
+                textarea.value = targetUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textarea);
+
+                alert("正在为您拉起手机默认浏览器...\n\n若未成功跳出，链接已自动复制，您可直接打开浏览器在地址栏【粘贴】访问。");
+
+                // 2. 执行您测试成功的系统级外抛 Intent
+                // 去掉 https:// 拼装标准格式，强制让系统去寻找外部承载
+                let cleanUrl = targetUrl.replace(/^https?:\/\//, '');
+                window.location.href = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+            }
+        </script>
+
         <button class="close-btn" style="color: #096dd9;" onclick="closeNotice('groupNoticeBar')" title="关闭">✕</button>
-        
+
     </div>
 
     <div class="notice-bar" id="noticeBar">
@@ -607,7 +735,8 @@
             <div class="modal-title" id="mName">-</div>
             <div class="modal-item"><strong>状态：</strong><span id="mStatus">-</span></div>
             <div class="modal-item"><strong>法定代表人/负责人：</strong><span id="mLegal">-</span></div>
-            <div class="modal-item"><strong>数据来源说明：</strong>公开资料整理与数据可视化汇总。本站不对机构性质、运营方式及相关争议作出认定。若有侵权，请联系 yl_lty@outlook.com</div>
+            <div class="modal-item"><strong>数据来源说明：</strong>公开资料整理与数据可视化汇总。本站不对机构性质、运营方式及相关争议作出认定。若有侵权，请联系
+                yl_lty@outlook.com</div>
         </div>
     </div>
 
@@ -647,34 +776,34 @@
         // 地图 GeoJSON 名称适配：名单使用简称，china.json 使用全称
         function provinceToMapName(name) {
             const map = {
-                "北京":"北京市", "天津":"天津市", "上海":"上海市", "重庆":"重庆市",
-                "河北":"河北省", "山西":"山西省", "辽宁":"辽宁省", "吉林":"吉林省",
-                "黑龙江":"黑龙江省", "江苏":"江苏省", "浙江":"浙江省", "安徽":"安徽省",
-                "福建":"福建省", "江西":"江西省", "山东":"山东省", "河南":"河南省",
-                "湖北":"湖北省", "湖南":"湖南省", "广东":"广东省", "海南":"海南省",
-                "四川":"四川省", "贵州":"贵州省", "云南":"云南省", "陕西":"陕西省",
-                "甘肃":"甘肃省", "青海":"青海省", "台湾":"台湾省",
-                "内蒙古":"内蒙古自治区", "广西":"广西壮族自治区",
-                "西藏":"西藏自治区", "宁夏":"宁夏回族自治区",
-                "新疆":"新疆维吾尔自治区", "香港":"香港特别行政区",
-                "澳门":"澳门特别行政区"
+                "北京": "北京市", "天津": "天津市", "上海": "上海市", "重庆": "重庆市",
+                "河北": "河北省", "山西": "山西省", "辽宁": "辽宁省", "吉林": "吉林省",
+                "黑龙江": "黑龙江省", "江苏": "江苏省", "浙江": "浙江省", "安徽": "安徽省",
+                "福建": "福建省", "江西": "江西省", "山东": "山东省", "河南": "河南省",
+                "湖北": "湖北省", "湖南": "湖南省", "广东": "广东省", "海南": "海南省",
+                "四川": "四川省", "贵州": "贵州省", "云南": "云南省", "陕西": "陕西省",
+                "甘肃": "甘肃省", "青海": "青海省", "台湾": "台湾省",
+                "内蒙古": "内蒙古自治区", "广西": "广西壮族自治区",
+                "西藏": "西藏自治区", "宁夏": "宁夏回族自治区",
+                "新疆": "新疆维吾尔自治区", "香港": "香港特别行政区",
+                "澳门": "澳门特别行政区"
             };
             return map[name] || name;
         }
 
         function mapNameToProvince(name) {
             const map = {
-                "北京市":"北京", "天津市":"天津", "上海市":"上海", "重庆市":"重庆",
-                "河北省":"河北", "山西省":"山西", "辽宁省":"辽宁", "吉林省":"吉林",
-                "黑龙江省":"黑龙江", "江苏省":"江苏", "浙江省":"浙江", "安徽省":"安徽",
-                "福建省":"福建", "江西省":"江西", "山东省":"山东", "河南省":"河南",
-                "湖北省":"湖北", "湖南省":"湖南", "广东省":"广东", "海南省":"海南",
-                "四川省":"四川", "贵州省":"贵州", "云南省":"云南", "陕西省":"陕西",
-                "甘肃省":"甘肃", "青海省":"青海", "台湾省":"台湾",
-                "内蒙古自治区":"内蒙古", "广西壮族自治区":"广西",
-                "西藏自治区":"西藏", "宁夏回族自治区":"宁夏",
-                "新疆维吾尔自治区":"新疆", "香港特别行政区":"香港",
-                "澳门特别行政区":"澳门"
+                "北京市": "北京", "天津市": "天津", "上海市": "上海", "重庆市": "重庆",
+                "河北省": "河北", "山西省": "山西", "辽宁省": "辽宁", "吉林省": "吉林",
+                "黑龙江省": "黑龙江", "江苏省": "江苏", "浙江省": "浙江", "安徽省": "安徽",
+                "福建省": "福建", "江西省": "江西", "山东省": "山东", "河南省": "河南",
+                "湖北省": "湖北", "湖南省": "湖南", "广东省": "广东", "海南省": "海南",
+                "四川省": "四川", "贵州省": "贵州", "云南省": "云南", "陕西省": "陕西",
+                "甘肃省": "甘肃", "青海省": "青海", "台湾省": "台湾",
+                "内蒙古自治区": "内蒙古", "广西壮族自治区": "广西",
+                "西藏自治区": "西藏", "宁夏回族自治区": "宁夏",
+                "新疆维吾尔自治区": "新疆", "香港特别行政区": "香港",
+                "澳门特别行政区": "澳门"
             };
             return map[name] || name;
         }
@@ -714,7 +843,7 @@
                 textarea.style.opacity = '0';
                 document.body.appendChild(textarea);
                 textarea.select();
-                try { document.execCommand('copy'); } catch (err) {}
+                try { document.execCommand('copy'); } catch (err) { }
                 document.body.removeChild(textarea);
             }
             showToast("已复制");
@@ -756,7 +885,7 @@
                 ]);
 
                 echarts.registerMap('_china', geoJson);
-                
+
                 const parsed = parseTextData(textData);
                 cachedParsedData = parsed.counts;
                 rawOrgList = parsed.orgs;
@@ -765,7 +894,7 @@
                 renderMap(cachedParsedData);
                 renderRankList(cachedParsedData);
                 setupMapClick();
-                
+
                 loadingMask.style.display = 'none';
                 // 确保默认初始化时处于“半展开”状态
                 setPanelState('half', false);
@@ -790,7 +919,7 @@
                 try {
                     const res = await fetchWithTimeout(url, {}, 8000);
                     if (res.ok) return await res.json();
-                } catch (e) {}
+                } catch (e) { }
             }
             throw new Error('地图底图（GeoJSON）节点连接失败');
         }
@@ -891,7 +1020,7 @@
             const seriesData = Object.keys(countsData).map(provName => {
                 const item = countsData[provName];
                 const cancelRateNum = item.total > 0 ? (item.cancelled / item.total) * 100 : 0;
-                
+
                 let val = item.total;
                 if (selectedMetric === 'active') val = item.active;
                 else if (selectedMetric === 'cancelled') val = item.cancelled;
@@ -912,7 +1041,7 @@
             const option = {
                 tooltip: {
                     trigger: 'item',
-                    formatter: function(params) {
+                    formatter: function (params) {
                         if (!params.data) return `<strong>${params.name}</strong><br/>暂无统计数据`;
                         const { total = 0, cancelled = 0, active = 0, cancelRate = '0.0' } = params.data;
                         return `
@@ -957,7 +1086,7 @@
         }
 
         function setupMapClick() {
-            myChart.on('click', function(params) {
+            myChart.on('click', function (params) {
                 if (params.name) {
                     document.getElementById('provinceFilter').value = mapNameToProvince(params.name);
                     //switchTab('org');
@@ -1048,15 +1177,15 @@
             }
         }
 
-                function filterAndRenderOrgs() {
+        function filterAndRenderOrgs() {
             const query = document.getElementById('searchInput').value.trim().toLowerCase();
             const provFilter = document.getElementById('provinceFilter').value;
 
             filteredOrgList = rawOrgList.filter(item => {
                 const matchProv = !provFilter || item.province === provFilter;
-                const matchQuery = !query || 
+                const matchQuery = !query ||
                     item.rawLine.toLowerCase().includes(query) ||
-                    item.name.toLowerCase().includes(query) || 
+                    item.name.toLowerCase().includes(query) ||
                     item.legalPerson.toLowerCase().includes(query);
                 return matchProv && matchQuery;
             });
@@ -1083,7 +1212,7 @@
             }
 
             const pageData = filteredOrgList.slice((pageIndex - 1) * PAGE_SIZE, pageIndex * PAGE_SIZE);
-            
+
             const htmlArr = pageData.map(item => {
                 // 状态颜色划分：存续(绿)、注销(红)、关闭(黄)、吊销(深红)
                 let tagClass = 'status-active';
@@ -1116,7 +1245,7 @@
             }
         }
 
-        document.getElementById('orgListContainer').addEventListener('scroll', function() {
+        document.getElementById('orgListContainer').addEventListener('scroll', function () {
             if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
                 if (pageIndex * PAGE_SIZE < filteredOrgList.length) {
                     pageIndex++;
@@ -1311,4 +1440,5 @@
         start();
     </script>
 </body>
+
 </html>
