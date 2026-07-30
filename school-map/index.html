@@ -499,12 +499,40 @@
     </header>
 
     <div class="group-notice-bar" id="groupNoticeBar">
-        欢迎加入忆兰反网戒群（可于此补充相关机构信息）：<a href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1075965802&card_type=group&source=qrcode" target="_blank" onclick="copyText('1075965802')">1075965802</a>
+        欢迎加入忆兰反网戒群：<a
+            href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1075965802&card_type=group&source=qrcode"
+            target="_blank" onclick="copyText('1075965802')">1075965802</a>
         <button class="close-btn" style="color: #096dd9;" onclick="closeNotice('groupNoticeBar')" title="关闭">✕</button>
         <br>
-        欢迎加入反网戒｜SCU：<a href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1022538498&card_type=group&source=qrcode" target="_blank" onclick="copyText('1022538498')">1022538498</a>
+        欢迎加入反网戒｜SCU：<a
+            href="mqqapi://card/show_pslcard?src_type=internal&version=1&uin=1022538498&card_type=group&source=qrcode"
+            target="_blank" onclick="copyText('1022538498')">1022538498</a><br>
+        信息需要补充、更正？<a href="javascript:void(0);" onclick="goWjxQuestionnaire()">点我填写上报信息问卷</a>
+
+        <script>
+            function goWjxQuestionnaire() {
+                const targetUrl = 'https://v.wjx.cn/vm/h4LBImu.aspx#';
+
+                // 1. 明确提示用户即将跳出 App，并自动复制链接
+                // 这一步是终极防翻车保障：哪怕在某些极端手机上没能成功拉起浏览器，用户点完确认后也已经拿到了链接
+                const textarea = document.createElement("textarea");
+                textarea.value = targetUrl;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textarea);
+
+                // 2. 执行您测试成功的系统级外抛 Intent
+                // 去掉 https:// 拼装标准格式，强制让系统去寻找外部承载
+                let cleanUrl = targetUrl.replace(/^https?:\/\//, '');
+                window.location.href = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+                
+                alert("正在为您拉起手机默认浏览器...\n\n若未成功跳出，链接已自动复制，您可直接打开浏览器在地址栏【粘贴】访问。");
+            }
+        </script>
+
         <button class="close-btn" style="color: #096dd9;" onclick="closeNotice('groupNoticeBar')" title="关闭">✕</button>
-        
+
     </div>
 
     <div class="notice-bar" id="noticeBar">
@@ -580,7 +608,7 @@
             <div class="modal-title" id="mName">-</div>
             <div class="modal-item"><strong>状态：</strong><span id="mStatus">-</span></div>
             <div class="modal-item"><strong>法定代表人/负责人：</strong><span id="mLegal">-</span></div>
-            <div class="modal-item"><strong>数据来源说明：</strong>公开资料整理与数据可视化汇总。本站不对机构性质、运营方式及相关争议作出认定。若有侵权，请联系 yl_lty@outlook.com</div>
+            <div class="modal-item"><strong>数据来源说明：</strong>公开资料整理与数据可视化汇总。本站不对机构性质、运营方式及相关争议作出认定。若有侵权，请联系 yl_lty@outlook.com；有误请在 https://v.wjx.cn/vm/h4LBImu.aspx# 上报。</div>
         </div>
     </div>
 
