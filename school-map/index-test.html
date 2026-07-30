@@ -649,12 +649,12 @@
                 document.execCommand("copy");
                 document.body.removeChild(textarea);
 
-                alert("正在为您拉起手机默认浏览器...\n\n若未成功跳出，链接已自动复制，您可直接打开浏览器在地址栏【粘贴】访问。");
-
                 // 2. 执行您测试成功的系统级外抛 Intent
                 // 去掉 https:// 拼装标准格式，强制让系统去寻找外部承载
                 let cleanUrl = targetUrl.replace(/^https?:\/\//, '');
                 window.location.href = `intent://${cleanUrl}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
+                
+                alert("正在为您拉起手机默认浏览器...\n\n若未成功跳出，链接已自动复制，您可直接打开浏览器在地址栏【粘贴】访问。");
             }
         </script>
 
